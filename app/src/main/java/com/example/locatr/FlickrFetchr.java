@@ -1,5 +1,6 @@
 package com.example.locatr;
 
+import android.location.Location;
 import android.net.Uri;
 import android.util.Log;
 
@@ -29,7 +30,7 @@ public class FlickrFetchr {
             appendQueryParameter("api_key", API_KEY).
             appendQueryParameter("format", "json").
             appendQueryParameter("nojsoncallback", "1").
-            appendQueryParameter("extras", "url_s").build();
+            appendQueryParameter("extras", "url_s,geo").build();
 
     public byte[] getUrlBytes(String urlSpec) throws IOException
     {
@@ -70,9 +71,9 @@ public class FlickrFetchr {
         return downloadGalleryItems(url);
     }
 
-    public List<GalleryItem> searchPhotos(String query)
+    public List<GalleryItem> searchPhotos(Location location)
     {
-        String url = buildUrl(SEARCH_METHOD, query);
+        String url = buildUrl(location);
         return downloadGalleryItems(url);
     }
 
@@ -97,15 +98,21 @@ public class FlickrFetchr {
         return items;
     }
 
-    private String buildUrl(String method, String query)
-    {
-        Uri.Builder uriBuilder = ENDPOINT.buildUpon().appendQueryParameter("method", method);
-        if (method.equals(SEARCH_METHOD))
-        {
+    private String buildUrl(String method, String query) {
+        Uri.Builder uriBuilder = ENDPOINT.buildUpon()
+                .appendQueryParameter("method", method);
+
+        if (method.equals(SEARCH_METHOD)) {
             uriBuilder.appendQueryParameter("text", query);
         }
 
         return uriBuilder.build().toString();
+    }
+
+    private String buildUrl(Location location)
+    {
+        return ENDPOINT.buildUpon().appendQueryParameter("method", SEARCH_METHOD).appendQueryParameter("lat","" + location.getLatitude())
+                .appendQueryParameter("lon", "" + location.getLongitude()).build().toString();
     }
 
     public void parseItems(List<GalleryItem> items, JSONObject jsonBody) throws IOException, JSONException
@@ -126,6 +133,8 @@ public class FlickrFetchr {
             }
 
             item.setUrl(photoJsonObject.getString("url_s"));
+            item.setLat(photoJsonObject.getDouble("latitude"));
+            item.setLon(photoJsonObject.getDouble("longitude"));
             item.setOwner(photoJsonObject.getString("owner"));
             items.add(item);
         }
